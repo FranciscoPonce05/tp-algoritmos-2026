@@ -1,0 +1,21 @@
+# Archivos compilados y ejecutables de Lazarus / Free Pascal
+*.exe
+*.dll
+*.so
+*.dylib
+*.o
+*.ppu
+*.a
+*.or
+
+# Archivos de respaldo y temporales del IDE
+*.bak
+*.ppu
+*.~pas
+*.~lpr
+*.~lpi
+*.~lps
+.backup/
+
+# Archivos específicos de sesión de Lazarus (guarda qué pestaña tenías abierta, etc.)
+/*.lps
