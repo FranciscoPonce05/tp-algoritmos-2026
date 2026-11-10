@@ -4,7 +4,7 @@ UNIT ARCHIVO_CLIENTES;
 
  INTERFACE
 CONST
-  RUTA ='/home/usre/Documentos/ING SIST/Algoritmos/pascal/proyecto final/Arch_clientes.dat';
+  RUTA = 'Arch_clientes.dat';
 
   TYPE
     T_REG_CLIENTES = RECORD

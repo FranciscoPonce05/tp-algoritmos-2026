@@ -19,3 +19,7 @@
 
 # Archivos específicos de sesión de Lazarus (guarda qué pestaña tenías abierta, etc.)
 /*.lps
+
+# Archivos binarios y de datos generados localmente
+/proyecto_final
+*.dat
