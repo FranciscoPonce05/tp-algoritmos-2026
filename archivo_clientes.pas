@@ -31,6 +31,9 @@ CONST
   VAR
     RUTA_COMPLETA: STRING;
   BEGIN
+    {ParamStr(0) obtiene la ruta del ejecutable y ExtractFilePath extrae su directorio.
+     De esta forma el archivo .dat se guarda siempre en la carpeta del proyecto,
+     evitando que Lazarus busque en otra ruta y reporte archivo vacio.}
     RUTA_COMPLETA := EXTRACTFILEPATH(PARAMSTR(0)) + RUTA;
     ASSIGN(ARCH_CLI, RUTA_COMPLETA);
     {$I-}

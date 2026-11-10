@@ -39,14 +39,17 @@ BEGIN
       WRITE('---------------------------------');
       GOTOXY(28, 23);
       WRITE('INGRESE OPCION [0..4]: ');
+      {Se lee como cadena de texto para evitar que el programa aborte con Runtime Error 106 si el usuario ingresa letras}
       READLN(ENTRADA);
       ENTRADA := TRIM(ENTRADA);
 
+      {VAL intenta convertir el texto a numero. Si hay letras o caracteres invalidos, CODIGO es distinto de 0}
       VAL(ENTRADA, OPCION, CODIGO);
       OPCION_VALIDA := (CODIGO = 0) AND (LENGTH(ENTRADA) > 0) AND (OPCION >= 0) AND (OPCION <= 4);
 
       IF NOT OPCION_VALIDA THEN
       BEGIN
+        {Muestra el mensaje de error y espera una tecla; el bucle limpia la pantalla con CLRSCR para redibujar el menu alineado}
         GOTOXY(20, 25);
         WRITE('>> ERROR: Debe ingresar un numero entre 0 y 4. <<');
         GOTOXY(20, 26);

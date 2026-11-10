@@ -23,6 +23,7 @@ VAR
   REG: T_REG_CLIENTES;
 BEGIN
   POS := -1;
+  {Se posiciona el puntero al inicio y se recorre secuencialmente sin cerrar el archivo}
   SEEK(ARCH_CLIENTES, 0);
   I := 0;
 
@@ -49,17 +50,19 @@ BEGIN
   WRITELN('DNI: ', DNI_INGRESADO);
   REG.DNI := DNI_INGRESADO;
 
+  {Ingreso de cada dato utilizando las funciones de la unit VALIDACION para garantizar formatos correctos}
   REG.APEYNOM := LEERCADENANOVACIA('Ingrese Apellido y Nombres');
   REG.DIREC   := LEERDIRECCION('Ingrese Direccion');
   REG.FNAC    := LEERFECHANAC('Ingrese Fecha de Nacimiento');
   REG.CEL     := LEERCELULAR('Ingrese Celular');
   REG.MAIL    := LEEREMAIL('Ingrese E-mail');
-  REG.ESTADO  := TRUE; // Activo por defecto
+  REG.ESTADO  := TRUE; {Activo por defecto}
 
   WRITELN;
   CONFIRMA := LEERCONFIRMACION('¿Desea registrar al cliente?');
   IF CONFIRMA THEN
   BEGIN
+    {SEEK a FILESIZE ubica el puntero al final del archivo para anexar el nuevo registro}
     SEEK(ARCH_CLIENTES, FILESIZE(ARCH_CLIENTES));
     WRITE(ARCH_CLIENTES, REG);
     WRITELN;
@@ -76,7 +79,7 @@ BEGIN
   READKEY;
 END;
 
-// MODIFICACION DE CAMPOS DEL CLIENTE (MENOS EL DNI)
+{Modificacion de los datos del cliente activo excepto su identificador unico (DNI), segun requerimiento A.3}
 PROCEDURE MODIFICAR_DATOS(VAR ARCH_CLIENTES: T_ARCHIVO_CLIENTES; POS: LONGINT; VAR REG: T_REG_CLIENTES);
 VAR
   OP: CHAR;
@@ -176,6 +179,7 @@ BEGIN
         '1': MODIFICAR_DATOS(ARCH_CLIENTES, POS, REG);
         '2': BEGIN
                WRITELN;
+               {Baja logica: cambia el campo ESTADO a FALSE sin borrar fisicamente el registro}
                CONFIRMA := LEERCONFIRMACION('¿Confirma dar de BAJA LOGICA al cliente?');
                IF CONFIRMA THEN
                BEGIN
@@ -234,9 +238,9 @@ BEGIN
   IF FILESIZE(ARCH_CLIENTES) > 0 THEN
     BUSCAR(ARCH_CLIENTES, DNI, POS);
 
+  {Si el archivo esta vacio o el DNI no existe (POS = -1), deriva al submenú para dar de Alta o Volver (Requerimiento A.2)}
   IF POS = -1 THEN
   BEGIN
-    // Requerimiento A.2 y Diagrama de menu: Submenú Alta / Volver
     REPEAT
       CLRSCR;
       WRITELN('========================================');
@@ -253,14 +257,14 @@ BEGIN
       CASE OPC OF
         '1': BEGIN
                DAR_ALTA(ARCH_CLIENTES, DNI);
-               OPC := '0'; // Tras el alta regresa
+               OPC := '0'; {Luego del alta regresa al menu anterior}
              END;
       END;
     UNTIL OPC = '0';
   END
   ELSE
   BEGIN
-    // Requerimiento A.3: Muestra de datos, Baja, Modificación o Volver
+    {Si el cliente existe (POS <> -1), muestra la ficha y ofrece Modificacion o Baja (Requerimiento A.3)}
     MODIFICAR_O_BAJA(ARCH_CLIENTES, POS);
   END;
 END;

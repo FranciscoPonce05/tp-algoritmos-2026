@@ -59,6 +59,7 @@ BEGIN
   BEGIN
     CARACTER := CADENA[I];
 
+    {Permite letras de la A a la Z, espacios y bytes >= 128 que corresponden a tildes y la letra ñ en codificacion UTF-8}
     IF NOT (CARACTER IN ['a'..'z', 'A'..'Z', ' ']) AND NOT (ORD(CARACTER) >= 128) THEN
     BEGIN
       VALIDO := FALSE;
@@ -140,6 +141,7 @@ BEGIN
 END;
 
 
+{Solicita una direccion alfanumerica y valida que no quede vacia}
 FUNCTION LEERDIRECCION(MENSAJE: STRING): STRING;
 VAR
   CADENA: STRING;
@@ -157,6 +159,7 @@ BEGIN
 END;
 
 
+{Valida una fecha de nacimiento en 8 digitos AAAAMMDD, verificando anio, mes, dias y anios bisiestos}
 FUNCTION LEERFECHANAC(MENSAJE: STRING): STRING;
 VAR
   ENTRADA, STRANIO, STRMES, STRDIA: STRING;
@@ -191,6 +194,7 @@ BEGIN
         VALIDO := FALSE
       ELSE IF (MES = 2) THEN
       BEGIN
+        {Calculo de anio bisiesto para validar correctamente el mes de febrero}
         IF ((ANIO MOD 4 = 0) AND (ANIO MOD 100 <> 0)) OR (ANIO MOD 400 = 0) THEN
         BEGIN
           IF DIA > 29 THEN VALIDO := FALSE;
@@ -211,6 +215,7 @@ BEGIN
 END;
 
 
+{Valida que el celular contenga entre 8 y 15 digitos y solo admita numeros, espacios o el signo +}
 FUNCTION LEERCELULAR(MENSAJE: STRING): STRING;
 VAR
   ENTRADA: STRING;
