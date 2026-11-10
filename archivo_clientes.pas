@@ -4,7 +4,7 @@ UNIT ARCHIVO_CLIENTES;
 
  INTERFACE
 CONST
-  RUTA ='/home/usre/Documentos/ING SIST/Algoritmos/pascal/proyecto final/Arch_clientes.dat';
+  RUTA = 'Arch_clientes.dat';
 
   TYPE
     T_REG_CLIENTES = RECORD
@@ -24,9 +24,18 @@ CONST
 
   IMPLEMENTATION
 
+  USES
+    SYSUTILS;
+
   PROCEDURE CREAR_ABRIR(VAR ARCH_CLI: T_ARCHIVO_CLIENTES);
+  VAR
+    RUTA_COMPLETA: STRING;
   BEGIN
-    ASSIGN(ARCH_CLI, RUTA);
+    {ParamStr(0) obtiene la ruta del ejecutable y ExtractFilePath extrae su directorio.
+     De esta forma el archivo .dat se guarda siempre en la carpeta del proyecto,
+     evitando que Lazarus busque en otra ruta y reporte archivo vacio.}
+    RUTA_COMPLETA := EXTRACTFILEPATH(PARAMSTR(0)) + RUTA;
+    ASSIGN(ARCH_CLI, RUTA_COMPLETA);
     {$I-}
     RESET(ARCH_CLI);
     {$I+}
