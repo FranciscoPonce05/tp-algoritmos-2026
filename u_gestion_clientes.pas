@@ -5,9 +5,9 @@ UNIT U_GESTION_CLIENTES;
 INTERFACE
 
 USES
-  ARCHIVO_CLIENTES, CRT, VALIDACION;
+  ARCHIVO_CLIENTES, CRT, VALIDACION, ARBOL;
 
-PROCEDURE CLIENTES(VAR ARCH_CLIENTES: T_ARCHIVO_CLIENTES);
+PROCEDURE CLIENTES(VAR ARCH_CLIENTES: T_ARCHIVO_CLIENTES; VAR ARBOL_DNI, ARBOL_NOM: T_PUNT);
 
 IMPLEMENTATION
 
@@ -37,11 +37,12 @@ BEGIN
   END;
 END;
 
-// ALTA DE NUEVO CLIENTE CON VALIDACIONES
-PROCEDURE DAR_ALTA(VAR ARCH_CLIENTES: T_ARCHIVO_CLIENTES; DNI_INGRESADO: STRING);
+// ALTA DE NUEVO CLIENTE CON VALIDACIONES Y ACTUALIZACION DE ARBOLES
+PROCEDURE DAR_ALTA(VAR ARCH_CLIENTES: T_ARCHIVO_CLIENTES; DNI_INGRESADO: STRING; VAR ARBOL_DNI, ARBOL_NOM: T_PUNT);
 VAR
   REG: T_REG_CLIENTES;
   CONFIRMA: BOOLEAN;
+  NUEVA_POS: LONGINT;
 BEGIN
   CLRSCR;
   WRITELN('========================================');
@@ -56,15 +57,22 @@ BEGIN
   REG.FNAC    := LEERFECHANAC('Ingrese Fecha de Nacimiento');
   REG.CEL     := LEERCELULAR('Ingrese Celular');
   REG.MAIL    := LEEREMAIL('Ingrese E-mail');
-  REG.ESTADO  := TRUE; {Activo por defecto}
+  REG.ESTADO  := FALSE; {Por defecto el ingreso de un cliente esta INACTIVO}
 
   WRITELN;
+  WRITELN('Estado asignado por defecto: INACTIVO');
   CONFIRMA := LEERCONFIRMACION('¿Desea registrar al cliente?');
   IF CONFIRMA THEN
   BEGIN
     {SEEK a FILESIZE ubica el puntero al final del archivo para anexar el nuevo registro}
-    SEEK(ARCH_CLIENTES, FILESIZE(ARCH_CLIENTES));
+    NUEVA_POS := FILESIZE(ARCH_CLIENTES);
+    SEEK(ARCH_CLIENTES, NUEVA_POS);
     WRITE(ARCH_CLIENTES, REG);
+
+    {Actualiza los arboles binarios en memoria con el nuevo registro}
+    INSERTAR_NODO(ARBOL_DNI, REG.DNI, NUEVA_POS);
+    INSERTAR_NODO(ARBOL_NOM, REG.APEYNOM, NUEVA_POS);
+
     WRITELN;
     WRITELN('>> ¡Cliente registrado con exito! <<');
   END
@@ -221,8 +229,8 @@ BEGIN
   UNTIL OP = '0';
 END;
 
-// PROCEDIMIENTO PRINCIPAL DE GESTION DE CLIENTES
-PROCEDURE CLIENTES(VAR ARCH_CLIENTES: T_ARCHIVO_CLIENTES);
+// PROCEDIMIENTO PRINCIPAL DE GESTION DE CLIENTES CON ABB
+PROCEDURE CLIENTES(VAR ARCH_CLIENTES: T_ARCHIVO_CLIENTES; VAR ARBOL_DNI, ARBOL_NOM: T_PUNT);
 VAR
   DNI: STRING;
   POS: LONGINT;
@@ -234,11 +242,10 @@ BEGIN
   WRITELN('========================================');
   DNI := LEERDNI('Ingrese DNI del cliente');
 
-  POS := -1;
-  IF FILESIZE(ARCH_CLIENTES) > 0 THEN
-    BUSCAR(ARCH_CLIENTES, DNI, POS);
+  {Busqueda eficiente en memoria utilizando el arbol binario por DNI}
+  BUSCAR_NODO(ARBOL_DNI, DNI, POS);
 
-  {Si el archivo esta vacio o el DNI no existe (POS = -1), deriva al submenú para dar de Alta o Volver (Requerimiento A.2)}
+  {Si el DNI no existe en el arbol (POS = -1), deriva al submenú para dar de Alta o Volver (Requerimiento A.2)}
   IF POS = -1 THEN
   BEGIN
     REPEAT
@@ -256,7 +263,7 @@ BEGIN
 
       CASE OPC OF
         '1': BEGIN
-               DAR_ALTA(ARCH_CLIENTES, DNI);
+               DAR_ALTA(ARCH_CLIENTES, DNI, ARBOL_DNI, ARBOL_NOM);
                OPC := '0'; {Luego del alta regresa al menu anterior}
              END;
       END;
