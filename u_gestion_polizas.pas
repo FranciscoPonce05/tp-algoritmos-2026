@@ -5,7 +5,7 @@ UNIT U_GESTION_POLIZAS;
 
 INTERFACE
 
-USES ARCHIVO_CLIENTES, ARCHIVO_POLIZAS, ARBOLES;
+USES ARCHIVO_CLIENTES, ARCHIVO_POLIZAS, ARBOL;
 
 PROCEDURE POLIZAS(VAR ARCH_CLIENTES: T_ARCHIVO_CLIENTES;
   VAR ARCH_POLIZAS: T_ARCHIVO_POLIZAS; ARBOL_DNI: T_ARBOL);
@@ -13,6 +13,9 @@ PROCEDURE POLIZAS(VAR ARCH_CLIENTES: T_ARCHIVO_CLIENTES;
 IMPLEMENTATION
 
 USES CRT, SYSUTILS, VALIDACION;
+
+CONST
+  MARGEN = '                  '; // 18 espacios para centrar en terminal de 80 columnas
 
 TYPE
   T_VALUACION = RECORD
@@ -43,13 +46,14 @@ BEGIN
   RESULT := FALSE;
   ARBOL_BUSCAR(ARBOL_DNI, DNI, POS);
   IF POS = -1 THEN
-    WRITELN('El DNI no corresponde a un cliente registrado.')
+    WRITELN(MARGEN, '>> El DNI no corresponde a un cliente registrado. <<')
   ELSE
   BEGIN
     SEEK(ARCH, POS);
     READ(ARCH, REG);
     RESULT := REG.ESTADO;
-    IF NOT RESULT THEN WRITELN('Cliente inactivo. Reactivelo desde Gestion de Clientes.');
+    IF NOT RESULT THEN
+      WRITELN(MARGEN, '>> Cliente inactivo. Reactivelo desde Gestion de Clientes. <<');
   END;
 END;
 
@@ -76,7 +80,7 @@ VAR
   VALIDA: BOOLEAN;
 BEGIN
   REPEAT
-    WRITE(MENSAJE, ' (AAAAMMDD): ');
+    WRITE(MARGEN, MENSAJE, ' (AAAAMMDD): ');
     READLN(RESULT);
     RESULT := TRIM(RESULT);
     VALIDA := (LENGTH(RESULT) = 8) AND ESSOLONUMEROS(RESULT);
@@ -84,7 +88,7 @@ BEGIN
       VALIDA := TRYENCODEDATE(STRTOINT(COPY(RESULT, 1, 4)),
         STRTOINT(COPY(RESULT, 5, 2)), STRTOINT(COPY(RESULT, 7, 2)), FECHA);
     IF NOT VALIDA THEN
-      WRITELN('Fecha invalida.');
+      WRITELN(MARGEN, '>> Fecha invalida. <<');
   UNTIL VALIDA;
 END;
 
@@ -106,11 +110,15 @@ FUNCTION LEER_VEHICULO(VAR REG: T_REG_POLIZAS): BOOLEAN;
 VAR
   I: INTEGER;
 BEGIN
-  WRITELN('Vehiculos de la tabla de referencia');
+  WRITELN;
+  WRITELN(MARGEN, '============================================');
+  WRITELN(MARGEN, '          VEHICULOS DE REFERENCIA           ');
+  WRITELN(MARGEN, '============================================');
   FOR I := LOW(TABLA) TO HIGH(TABLA) DO
-    WRITELN(I, ' - ', TABLA[I].MARCA, ' ', TABLA[I].MODELO, ' ', TABLA[I].ANIO);
-  WRITELN('0 - Cancelar');
-  I := VALIDARENTERO('Seleccione marca, modelo y anio', 0, HIGH(TABLA));
+    WRITELN(MARGEN, '  ', I, ' - ', TABLA[I].MARCA, ' ', TABLA[I].MODELO, ' (', TABLA[I].ANIO, ')');
+  WRITELN(MARGEN, '  0 - Cancelar');
+  WRITELN(MARGEN, '--------------------------------------------');
+  I := VALIDARENTERO(MARGEN + 'Seleccione marca, modelo y anio', 0, HIGH(TABLA));
   RESULT := I <> 0;
   IF RESULT THEN
   BEGIN
@@ -127,23 +135,25 @@ BEGIN
   REPEAT
     REG.FECHA_FIN := LEER_FECHA('Fecha de fin');
     IF REG.FECHA_FIN < REG.FECHA_INICIO THEN
-      WRITELN('La fecha de fin debe ser igual o posterior al inicio.');
+      WRITELN(MARGEN, '>> La fecha de fin debe ser igual o posterior al inicio. <<');
   UNTIL REG.FECHA_FIN >= REG.FECHA_INICIO;
 END;
 
 PROCEDURE MOSTRAR_POLIZA(CONST REG: T_REG_POLIZAS);
 BEGIN
   WRITELN;
-  WRITELN('Poliza Nro. ', REG.NRO_POLIZA, ' | DNI ', REG.DNI, ' | ', REG.PATENTE);
-  WRITELN(REG.MARCA, ' ', REG.MODELO, ' ', REG.ANIO);
-  WRITELN('Fecha de carga: ', REG.FECHA_CARGA);
-  WRITELN('Vigencia: ', REG.FECHA_INICIO, ' - ', REG.FECHA_FIN);
-  WRITELN('Cobertura: ', REG.COBERTURA, ' | Suma asegurada: $', REG.SUMA_ASEGURADA:0:2,
+  WRITELN(MARGEN, '--------------------------------------------');
+  WRITELN(MARGEN, 'Poliza Nro. ', REG.NRO_POLIZA, ' | DNI ', REG.DNI, ' | ', REG.PATENTE);
+  WRITELN(MARGEN, REG.MARCA, ' ', REG.MODELO, ' ', REG.ANIO);
+  WRITELN(MARGEN, 'Fecha de carga: ', REG.FECHA_CARGA);
+  WRITELN(MARGEN, 'Vigencia: ', REG.FECHA_INICIO, ' - ', REG.FECHA_FIN);
+  WRITELN(MARGEN, 'Cobertura: ', REG.COBERTURA, ' | Suma asegurada: $', REG.SUMA_ASEGURADA:0:2,
     ' | Cuota: $', REG.VALOR_CUOTA:0:2);
   IF REG.ESTADO THEN
-    WRITELN('Estado: ACTIVA')
+    WRITELN(MARGEN, 'Estado: ACTIVA')
   ELSE
-    WRITELN('Estado: BAJA LOGICA');
+    WRITELN(MARGEN, 'Estado: BAJA LOGICA');
+  WRITELN(MARGEN, '--------------------------------------------');
 END;
 
 PROCEDURE GUARDAR(VAR ARCH: T_ARCHIVO_POLIZAS; POS: LONGINT;
@@ -162,7 +172,7 @@ BEGIN
   IF NOT CLIENTE_ACTIVO(ARCH_CLI, ARBOL_DNI, DNI) THEN EXIT;
   IF PATENTE_OCUPADA(ARCH_POL, PATENTE, -1) THEN
   BEGIN
-    WRITELN('Ya existe una poliza activa para esa patente.');
+    WRITELN(MARGEN, '>> Ya existe una poliza activa para esa patente. <<');
     EXIT;
   END;
 
@@ -174,13 +184,13 @@ BEGIN
   REG.ESTADO := TRUE;
   IF NOT LEER_VEHICULO(REG) THEN EXIT;
   LEER_VIGENCIA(REG);
-  REG.COBERTURA := LEERCOBERTURA('Cobertura');
+  REG.COBERTURA := LEERCOBERTURA(MARGEN + 'Cobertura');
   REG.VALOR_CUOTA := CALCULAR_CUOTA(REG.SUMA_ASEGURADA, REG.COBERTURA);
   MOSTRAR_POLIZA(REG);
-  IF LEERCONFIRMACION('Confirma el alta') THEN
+  IF LEERCONFIRMACION(MARGEN + '¿Confirma el alta?') THEN
   BEGIN
     GUARDAR(ARCH_POL, POS, REG);
-    WRITELN('Poliza registrada.');
+    WRITELN(MARGEN, '>> Poliza registrada con exito. <<');
   END;
 END;
 
@@ -218,29 +228,34 @@ VAR
   OP: INTEGER;
   PATENTE_NUEVA, DNI_NUEVO: STRING;
 BEGIN
-  WRITELN('1 - Vigencia');
-  WRITELN('2 - Marca, modelo y anio');
-  WRITELN('3 - Cobertura');
-  WRITELN('4 - Patente');
-  WRITELN('5 - DNI del titular');
-  WRITELN('0 - Cancelar');
-  OP := VALIDARENTERO('Seleccione el campo a modificar', 0, 5);
+  WRITELN;
+  WRITELN(MARGEN, '============================================');
+  WRITELN(MARGEN, '           MODIFICACION DE POLIZA           ');
+  WRITELN(MARGEN, '============================================');
+  WRITELN(MARGEN, '  1 - Vigencia');
+  WRITELN(MARGEN, '  2 - Marca, modelo y anio');
+  WRITELN(MARGEN, '  3 - Cobertura');
+  WRITELN(MARGEN, '  4 - Patente');
+  WRITELN(MARGEN, '  5 - DNI del titular');
+  WRITELN(MARGEN, '  0 - Cancelar');
+  WRITELN(MARGEN, '--------------------------------------------');
+  OP := VALIDARENTERO(MARGEN + 'Seleccione el campo a modificar', 0, 5);
   CASE OP OF
     0: EXIT;
     1: LEER_VIGENCIA(REG);
     2: IF NOT LEER_VEHICULO(REG) THEN EXIT;
-    3: REG.COBERTURA := LEERCOBERTURA('Nueva cobertura');
+    3: REG.COBERTURA := LEERCOBERTURA(MARGEN + 'Nueva cobertura');
     4: BEGIN
-         PATENTE_NUEVA := LEERPATENTE('Nueva patente');
+         PATENTE_NUEVA := LEERPATENTE(MARGEN + 'Nueva patente');
          IF PATENTE_OCUPADA(ARCH_POL, PATENTE_NUEVA, POS) THEN
          BEGIN
-           WRITELN('Ya existe una poliza activa para esa patente.');
+           WRITELN(MARGEN, '>> Ya existe una poliza activa para esa patente. <<');
            EXIT;
          END;
          REG.PATENTE := PATENTE_NUEVA;
        END;
     5: BEGIN
-         DNI_NUEVO := LEERDNI('DNI del nuevo titular');
+         DNI_NUEVO := LEERDNI(MARGEN + 'DNI del nuevo titular');
          IF NOT CLIENTE_ACTIVO(ARCH_CLI, ARBOL_DNI, DNI_NUEVO) THEN EXIT;
          REG.DNI := DNI_NUEVO;
        END;
@@ -248,10 +263,10 @@ BEGIN
   IF OP IN [2, 3] THEN
     REG.VALOR_CUOTA := CALCULAR_CUOTA(REG.SUMA_ASEGURADA, REG.COBERTURA);
   MOSTRAR_POLIZA(REG);
-  IF LEERCONFIRMACION('Confirma la modificacion') THEN
+  IF LEERCONFIRMACION(MARGEN + '¿Confirma la modificacion?') THEN
   BEGIN
     GUARDAR(ARCH_POL, POS, REG);
-    WRITELN('Poliza modificada.');
+    WRITELN(MARGEN, '>> Poliza modificada con exito. <<');
   END;
 END;
 
@@ -265,38 +280,45 @@ VAR
   ENCONTRADA: BOOLEAN;
 BEGIN
   CLRSCR;
-  WRITELN('GESTION DE POLIZAS');
-  DNI := LEERDNI('DNI del titular');
-  PATENTE := LEERPATENTE('Ingrese patente');
+  WRITELN(MARGEN, '============================================');
+  WRITELN(MARGEN, '             GESTION DE POLIZAS             ');
+  WRITELN(MARGEN, '============================================');
+  WRITELN;
+  DNI := LEERDNI(MARGEN + 'DNI del titular');
+  PATENTE := LEERPATENTE(MARGEN + 'Ingrese patente');
   BUSCAR_POLIZAS(ARCH_POLIZAS, DNI, PATENTE, ENCONTRADA, POS, REG);
 
   IF NOT ENCONTRADA THEN
   BEGIN
-    WRITELN('No hay polizas para ese DNI y patente.');
+    WRITELN;
+    WRITELN(MARGEN, 'No hay polizas para ese DNI y patente.');
     DAR_ALTA(ARCH_CLIENTES, ARBOL_DNI, ARCH_POLIZAS, DNI, PATENTE);
   END
   ELSE IF POS >= 0 THEN
   BEGIN
     WRITELN;
-    WRITELN('1 - Baja logica');
-    WRITELN('2 - Modificar');
-    WRITELN('0 - Volver');
-    OP := VALIDARENTERO('Opcion', 0, 2);
+    WRITELN(MARGEN, '--------------------------------------------');
+    WRITELN(MARGEN, '  1 - Baja logica');
+    WRITELN(MARGEN, '  2 - Modificar');
+    WRITELN(MARGEN, '  0 - Volver');
+    WRITELN(MARGEN, '--------------------------------------------');
+    OP := VALIDARENTERO(MARGEN + 'Opcion', 0, 2);
     CASE OP OF
       0: EXIT;
-      1: IF LEERCONFIRMACION('Confirma la baja logica') THEN
+      1: IF LEERCONFIRMACION(MARGEN + '¿Confirma la baja logica?') THEN
          BEGIN
            REG.ESTADO := FALSE;
            GUARDAR(ARCH_POLIZAS, POS, REG);
-           WRITELN('Baja logica aplicada.');
+           WRITELN(MARGEN, '>> Baja logica aplicada correctamente. <<');
          END;
       2: MODIFICAR(ARCH_CLIENTES, ARBOL_DNI, ARCH_POLIZAS, POS, REG);
     END;
   END;
   IF ENCONTRADA AND (POS = -1) THEN
-    IF LEERCONFIRMACION('Solo hay polizas dadas de baja. Desea emitir una nueva') THEN
+    IF LEERCONFIRMACION(MARGEN + 'Solo hay polizas dadas de baja. ¿Desea emitir una nueva?') THEN
       DAR_ALTA(ARCH_CLIENTES, ARBOL_DNI, ARCH_POLIZAS, DNI, PATENTE);
-  WRITE('Presione Enter para volver al menu principal...');
+  WRITELN;
+  WRITE(MARGEN, 'Presione Enter para volver al menu principal...');
   READLN;
 END;
 

@@ -11,6 +11,9 @@ PROCEDURE CLIENTES(VAR ARCH_CLIENTES: T_ARCHIVO_CLIENTES; VAR ARBOL_DNI, ARBOL_N
 
 IMPLEMENTATION
 
+CONST
+  MARGEN = '                  '; // 18 espacios para centrar en terminal estandar de 80 columnas
+
 PROCEDURE LEE_REGISTRO(VAR ARCH_CLIENTES: T_ARCHIVO_CLIENTES; I: LONGINT; VAR REG: T_REG_CLIENTES);
 BEGIN
   SEEK(ARCH_CLIENTES, I);
@@ -25,23 +28,24 @@ VAR
   NUEVA_POS: LONGINT;
 BEGIN
   CLRSCR;
-  WRITELN('========================================');
-  WRITELN('         ALTA DE NUEVO CLIENTE          ');
-  WRITELN('========================================');
-  WRITELN('DNI: ', DNI_INGRESADO);
+  WRITELN(MARGEN, '============================================');
+  WRITELN(MARGEN, '           ALTA DE NUEVO CLIENTE            ');
+  WRITELN(MARGEN, '============================================');
+  WRITELN(MARGEN, 'DNI: ', DNI_INGRESADO);
+  WRITELN;
   REG.DNI := DNI_INGRESADO;
 
   {Ingreso de cada dato utilizando las funciones de la unit VALIDACION para garantizar formatos correctos}
-  REG.APEYNOM := LEERCADENANOVACIA('Ingrese Apellido y Nombres');
-  REG.DIREC   := LEERDIRECCION('Ingrese Direccion');
-  REG.FNAC    := LEERFECHANAC('Ingrese Fecha de Nacimiento');
-  REG.CEL     := LEERCELULAR('Ingrese Celular');
-  REG.MAIL    := LEEREMAIL('Ingrese E-mail');
+  REG.APEYNOM := LEERCADENANOVACIA(MARGEN + 'Ingrese Apellido y Nombres');
+  REG.DIREC   := LEERDIRECCION(MARGEN + 'Ingrese Direccion');
+  REG.FNAC    := LEERFECHANAC(MARGEN + 'Ingrese Fecha de Nacimiento');
+  REG.CEL     := LEERCELULAR(MARGEN + 'Ingrese Celular');
+  REG.MAIL    := LEEREMAIL(MARGEN + 'Ingrese E-mail');
   REG.ESTADO  := FALSE; {Por defecto el ingreso de un cliente esta INACTIVO}
 
   WRITELN;
-  WRITELN('Estado asignado por defecto: INACTIVO');
-  CONFIRMA := LEERCONFIRMACION('¿Desea registrar al cliente?');
+  WRITELN(MARGEN, 'Estado asignado por defecto: INACTIVO');
+  CONFIRMA := LEERCONFIRMACION(MARGEN + '¿Desea registrar al cliente?');
   IF CONFIRMA THEN
   BEGIN
     {SEEK a FILESIZE ubica el puntero al final del archivo para anexar el nuevo registro}
@@ -54,16 +58,16 @@ BEGIN
     INSERTAR_NODO(ARBOL_NOM, REG.APEYNOM, NUEVA_POS);
 
     WRITELN;
-    WRITELN('>> ¡Cliente registrado con exito! <<');
+    WRITELN(MARGEN, '>> ¡Cliente registrado con exito! <<');
   END
   ELSE
   BEGIN
     WRITELN;
-    WRITELN('>> Alta cancelada. No se guardaron los datos. <<');
+    WRITELN(MARGEN, '>> Alta cancelada. No se guardaron los datos. <<');
   END;
 
   WRITELN;
-  WRITE('Presione una tecla para continuar...');
+  WRITE(MARGEN, 'Presione una tecla para continuar...');
   READKEY;
 END;
 
@@ -78,39 +82,39 @@ BEGIN
 
   REPEAT
     CLRSCR;
-    WRITELN('========================================');
-    WRITELN('      MODIFICACION DE DATOS CLIENTE     ');
-    WRITELN('========================================');
-    WRITELN('DNI (no modificable): ', REG.DNI);
-    WRITELN('1 - Apellido y Nombres: ', REG.APEYNOM);
-    WRITELN('2 - Direccion:          ', REG.DIREC);
-    WRITELN('3 - Fecha Nacimiento:   ', REG.FNAC);
-    WRITELN('4 - Celular:            ', REG.CEL);
-    WRITELN('5 - E-mail:             ', REG.MAIL);
-    WRITELN('6 - Modificar TODOS los campos');
-    WRITELN('0 - Volver al menu del cliente');
-    WRITELN('========================================');
-    WRITE('Seleccione que desea modificar: ');
+    WRITELN(MARGEN, '============================================');
+    WRITELN(MARGEN, '       MODIFICACION DE DATOS CLIENTE        ');
+    WRITELN(MARGEN, '============================================');
+    WRITELN(MARGEN, 'DNI (no modificable): ', REG.DNI);
+    WRITELN(MARGEN, '1 - Apellido y Nombres: ', REG.APEYNOM);
+    WRITELN(MARGEN, '2 - Direccion:          ', REG.DIREC);
+    WRITELN(MARGEN, '3 - Fecha Nacimiento:   ', REG.FNAC);
+    WRITELN(MARGEN, '4 - Celular:            ', REG.CEL);
+    WRITELN(MARGEN, '5 - E-mail:             ', REG.MAIL);
+    WRITELN(MARGEN, '6 - Modificar TODOS los campos');
+    WRITELN(MARGEN, '0 - Volver al menu del cliente');
+    WRITELN(MARGEN, '============================================');
+    WRITE(MARGEN, 'Seleccione que desea modificar: ');
     READLN(OP);
 
     CASE OP OF
-      '1': REG.APEYNOM := LEERCADENANOVACIA('Nuevo Apellido y Nombres');
-      '2': REG.DIREC   := LEERDIRECCION('Nueva Direccion');
-      '3': REG.FNAC    := LEERFECHANAC('Nueva Fecha de Nacimiento');
-      '4': REG.CEL     := LEERCELULAR('Nuevo Celular');
-      '5': REG.MAIL    := LEEREMAIL('Nuevo E-mail');
+      '1': REG.APEYNOM := LEERCADENANOVACIA(MARGEN + 'Nuevo Apellido y Nombres');
+      '2': REG.DIREC   := LEERDIRECCION(MARGEN + 'Nueva Direccion');
+      '3': REG.FNAC    := LEERFECHANAC(MARGEN + 'Nueva Fecha de Nacimiento');
+      '4': REG.CEL     := LEERCELULAR(MARGEN + 'Nuevo Celular');
+      '5': REG.MAIL    := LEEREMAIL(MARGEN + 'Nuevo E-mail');
       '6': BEGIN
-             REG.APEYNOM := LEERCADENANOVACIA('Nuevo Apellido y Nombres');
-             REG.DIREC   := LEERDIRECCION('Nueva Direccion');
-             REG.FNAC    := LEERFECHANAC('Nueva Fecha de Nacimiento');
-             REG.CEL     := LEERCELULAR('Nuevo Celular');
-             REG.MAIL    := LEEREMAIL('Nuevo E-mail');
+             REG.APEYNOM := LEERCADENANOVACIA(MARGEN + 'Nuevo Apellido y Nombres');
+             REG.DIREC   := LEERDIRECCION(MARGEN + 'Nueva Direccion');
+             REG.FNAC    := LEERFECHANAC(MARGEN + 'Nueva Fecha de Nacimiento');
+             REG.CEL     := LEERCELULAR(MARGEN + 'Nuevo Celular');
+             REG.MAIL    := LEEREMAIL(MARGEN + 'Nuevo E-mail');
            END;
     END;
 
     IF OP IN ['1'..'6'] THEN
     BEGIN
-      CONFIRMA := LEERCONFIRMACION('¿Desea guardar los cambios?');
+      CONFIRMA := LEERCONFIRMACION(MARGEN + '¿Desea guardar los cambios?');
       IF CONFIRMA THEN
       BEGIN
         SEEK(ARCH_CLIENTES, POS);
@@ -119,21 +123,21 @@ BEGIN
         {Si cambio el APEYNOM, el nodo de ARBOL_NOM se reubica: se elimina la clave vieja y se inserta la nueva con la misma POS}
         IF REG.APEYNOM <> NOMBRE_EN_ARBOL THEN
         BEGIN
-          ELIMINAR_NODO(ARBOL_NOM, NOMBRE_EN_ARBOL, POS); {AJUSTAR al nombre real del procedimiento de ARBOL.pas}
+          ELIMINAR_NODO(ARBOL_NOM, NOMBRE_EN_ARBOL, POS);
           INSERTAR_NODO(ARBOL_NOM, REG.APEYNOM, POS);
           NOMBRE_EN_ARBOL := REG.APEYNOM;
         END;
 
-        WRITELN('>> Modificacion guardada con exito. <<');
+        WRITELN(MARGEN, '>> Modificacion guardada con exito. <<');
       END
       ELSE
       BEGIN
         // Restaurar registro leyendo lo que habia en el archivo
         SEEK(ARCH_CLIENTES, POS);
         READ(ARCH_CLIENTES, REG);
-        WRITELN('>> Modificacion cancelada. <<');
+        WRITELN(MARGEN, '>> Modificacion cancelada. <<');
       END;
-      WRITE('Presione una tecla para continuar...');
+      WRITE(MARGEN, 'Presione una tecla para continuar...');
       READKEY;
     END;
   UNTIL OP = '0';
@@ -150,29 +154,29 @@ BEGIN
     LEE_REGISTRO(ARCH_CLIENTES, POS, REG);
 
     CLRSCR;
-    WRITELN('========================================');
-    WRITELN('           DATOS DEL CLIENTE            ');
-    WRITELN('========================================');
-    WRITELN('DNI:                 ', REG.DNI);
-    WRITELN('Apellido y Nombres:  ', REG.APEYNOM);
-    WRITELN('Direccion:           ', REG.DIREC);
-    WRITELN('Fecha de Nacimiento: ', REG.FNAC);
-    WRITELN('Celular:             ', REG.CEL);
-    WRITELN('E-mail:              ', REG.MAIL);
+    WRITELN(MARGEN, '============================================');
+    WRITELN(MARGEN, '             DATOS DEL CLIENTE              ');
+    WRITELN(MARGEN, '============================================');
+    WRITELN(MARGEN, 'DNI:                 ', REG.DNI);
+    WRITELN(MARGEN, 'Apellido y Nombres:  ', REG.APEYNOM);
+    WRITELN(MARGEN, 'Direccion:           ', REG.DIREC);
+    WRITELN(MARGEN, 'Fecha de Nacimiento: ', REG.FNAC);
+    WRITELN(MARGEN, 'Celular:             ', REG.CEL);
+    WRITELN(MARGEN, 'E-mail:              ', REG.MAIL);
     IF REG.ESTADO THEN
-      WRITELN('Estado:              ACTIVO')
+      WRITELN(MARGEN, 'Estado:              ACTIVO')
     ELSE
-      WRITELN('Estado:              NO ACTIVO (Baja logica)');
-    WRITELN('========================================');
+      WRITELN(MARGEN, 'Estado:              NO ACTIVO (Baja logica)');
+    WRITELN(MARGEN, '============================================');
 
     IF REG.ESTADO THEN
     BEGIN
       // Cliente ACTIVO
-      WRITELN('1 - Modificar datos');
-      WRITELN('2 - Dar de Baja Logica');
-      WRITELN('0 - Volver al menu principal');
-      WRITELN('========================================');
-      WRITE('Seleccione una opcion: ');
+      WRITELN(MARGEN, '1 - Modificar datos');
+      WRITELN(MARGEN, '2 - Dar de Baja Logica');
+      WRITELN(MARGEN, '0 - Volver al menu principal');
+      WRITELN(MARGEN, '============================================');
+      WRITE(MARGEN, 'Seleccione una opcion: ');
       READLN(OP);
 
       CASE OP OF
@@ -180,14 +184,14 @@ BEGIN
         '2': BEGIN
                WRITELN;
                {Baja logica: cambia el campo ESTADO a FALSE sin borrar fisicamente el registro}
-               CONFIRMA := LEERCONFIRMACION('¿Confirma dar de BAJA LOGICA al cliente?');
+               CONFIRMA := LEERCONFIRMACION(MARGEN + '¿Confirma dar de BAJA LOGICA al cliente?');
                IF CONFIRMA THEN
                BEGIN
                  REG.ESTADO := FALSE;
                  SEEK(ARCH_CLIENTES, POS);
                  WRITE(ARCH_CLIENTES, REG);
-                 WRITELN('>> Baja logica aplicada correctamente. <<');
-                 WRITE('Presione una tecla para continuar...');
+                 WRITELN(MARGEN, '>> Baja logica aplicada correctamente. <<');
+                 WRITE(MARGEN, 'Presione una tecla para continuar...');
                  READKEY;
                END;
              END;
@@ -196,23 +200,23 @@ BEGIN
     ELSE
     BEGIN
       // Cliente INACTIVO
-      WRITELN('El cliente se encuentra dado de BAJA LOGICA.');
-      WRITELN('1 - Reactivar cliente (Alta logica)');
-      WRITELN('0 - Volver al menu principal');
-      WRITELN('========================================');
-      WRITE('Seleccione una opcion: ');
+      WRITELN(MARGEN, 'El cliente se encuentra dado de BAJA LOGICA.');
+      WRITELN(MARGEN, '1 - Reactivar cliente (Alta logica)');
+      WRITELN(MARGEN, '0 - Volver al menu principal');
+      WRITELN(MARGEN, '============================================');
+      WRITE(MARGEN, 'Seleccione una opcion: ');
       READLN(OP);
 
       CASE OP OF
         '1': BEGIN
-               CONFIRMA := LEERCONFIRMACION('¿Desea reactivar a este cliente?');
+               CONFIRMA := LEERCONFIRMACION(MARGEN + '¿Desea reactivar a este cliente?');
                IF CONFIRMA THEN
                BEGIN
                  REG.ESTADO := TRUE;
                  SEEK(ARCH_CLIENTES, POS);
                  WRITE(ARCH_CLIENTES, REG);
-                 WRITELN('>> Cliente reactivado con exito. <<');
-                 WRITE('Presione una tecla para continuar...');
+                 WRITELN(MARGEN, '>> Cliente reactivado con exito. <<');
+                 WRITE(MARGEN, 'Presione una tecla para continuar...');
                  READKEY;
                END;
              END;
@@ -229,10 +233,11 @@ VAR
   OPC: CHAR;
 BEGIN
   CLRSCR;
-  WRITELN('========================================');
-  WRITELN('          GESTION DE CLIENTES           ');
-  WRITELN('========================================');
-  DNI := LEERDNI('Ingrese DNI del cliente');
+  WRITELN(MARGEN, '============================================');
+  WRITELN(MARGEN, '            GESTION DE CLIENTES             ');
+  WRITELN(MARGEN, '============================================');
+  WRITELN;
+  DNI := LEERDNI(MARGEN + 'Ingrese DNI del cliente');
 
   {Busqueda eficiente en memoria utilizando el arbol binario por DNI}
   BUSCAR_NODO(ARBOL_DNI, DNI, POS);
@@ -242,15 +247,15 @@ BEGIN
   BEGIN
     REPEAT
       CLRSCR;
-      WRITELN('========================================');
-      WRITELN('          GESTION DE CLIENTES           ');
-      WRITELN('========================================');
-      WRITELN('El DNI "', DNI, '" no se encuentra registrado.');
+      WRITELN(MARGEN, '============================================');
+      WRITELN(MARGEN, '            GESTION DE CLIENTES             ');
+      WRITELN(MARGEN, '============================================');
+      WRITELN(MARGEN, 'El DNI "', DNI, '" no se encuentra registrado.');
       WRITELN;
-      WRITELN('1 - Alta de Cliente');
-      WRITELN('0 - Volver al menu anterior');
-      WRITELN('========================================');
-      WRITE('Seleccione una opcion: ');
+      WRITELN(MARGEN, '1 - Alta de Cliente');
+      WRITELN(MARGEN, '0 - Volver al menu anterior');
+      WRITELN(MARGEN, '============================================');
+      WRITE(MARGEN, 'Seleccione una opcion: ');
       READLN(OPC);
 
       CASE OPC OF
@@ -269,5 +274,3 @@ BEGIN
 END;
 
 END.
-
-

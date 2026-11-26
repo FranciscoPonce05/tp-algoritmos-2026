@@ -60,6 +60,26 @@
         <IsPartOfProject Value="True"/>
         <UnitName Value="ARBOL"/>
       </Unit>
+      <Unit>
+        <Filename Value="archivo_polizas.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="ARCHIVO_POLIZAS"/>
+      </Unit>
+      <Unit>
+        <Filename Value="u_gestion_polizas.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="U_GESTION_POLIZAS"/>
+      </Unit>
+      <Unit>
+        <Filename Value="u_gestion_listados.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="U_GESTION_LISTADOS"/>
+      </Unit>
+      <Unit>
+        <Filename Value="u_gestion_estadisticas.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="U_GESTION_ESTADISTICAS"/>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
