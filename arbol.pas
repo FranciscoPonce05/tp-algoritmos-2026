@@ -1,0 +1,245 @@
+UNIT ARBOL;
+
+{$CODEPAGE UTF8}
+
+INTERFACE
+
+USES
+  ARCHIVO_CLIENTES, CRT;
+
+TYPE
+  {Tipo de dato del nodo segun los apuntes de la catedra para el proyecto final}
+  T_DATO_ARBOL = RECORD
+    CLAVE: STRING[100]; {DNI o Apellido y Nombre}
+    POS_ARCH: LONGINT;  {Posicion relativa en Arch_clientes.dat}
+  END;
+
+  {Puntero y nodo del arbol binario de busqueda con SAI (izquierdo) y SAD (derecho)}
+  T_PUNT = ^T_NODO;
+  T_NODO = RECORD
+    INFO: T_DATO_ARBOL;
+    SAI, SAD: T_PUNT;
+  END;
+
+{Inicializa un arbol vacio}
+PROCEDURE CREAR_ARBOL(VAR RAIZ: T_PUNT);
+
+{Verifica si el arbol esta vacio}
+FUNCTION ARBOL_VACIO(RAIZ: T_PUNT): BOOLEAN;
+
+{Verifica si no hay memoria disponible para un nuevo nodo}
+FUNCTION ARBOL_LLENO(RAIZ: T_PUNT): BOOLEAN;
+
+{Inserta un nuevo elemento en el arbol binario de busqueda}
+PROCEDURE AGREGAR(VAR RAIZ: T_PUNT; X: T_DATO_ARBOL);
+
+{Procedimiento alternativo/alias para insercion directa por clave y posicion}
+PROCEDURE INSERTAR_NODO(VAR RAIZ: T_PUNT; CLAVE: STRING; POS_REL: LONGINT);
+
+{Busca un elemento en el arbol mediante recorrido Preorden (segun apunte de catedra)}
+PROCEDURE PREORDEN(RAIZ: T_PUNT; BUSCADO: STRING; VAR ENC: BOOLEAN; VAR X: T_DATO_ARBOL);
+
+{Busca la clave y devuelve la posicion relativa en el archivo maestro (.dat), o -1 si no existe}
+PROCEDURE BUSCAR_NODO(RAIZ: T_PUNT; CLAVE_BUSCADA: STRING; VAR POS_REL: LONGINT);
+
+{Elimina el nodo menor del subarbol derecho (auxiliar para la baja)}
+FUNCTION SUPRIME_MIN(VAR RAIZ: T_PUNT): T_DATO_ARBOL;
+
+{Elimina un nodo del arbol por su clave}
+PROCEDURE SUPRIME(VAR RAIZ: T_PUNT; X: STRING);
+
+{Recorrido In-Orden recursivo (SAI -> RAIZ -> SAD) para procesar registros ordenados}
+PROCEDURE INORDEN(RAIZ: T_PUNT; VAR ARCH_CLI: T_ARCHIVO_CLIENTES);
+
+{Lee Arch_clientes.dat al iniciar el programa y genera los dos arboles: ARBOL_DNI y ARBOL_NOM}
+PROCEDURE GENERAR_ARBOLES(VAR ARCH_CLI: T_ARCHIVO_CLIENTES; VAR ARBOL_DNI, ARBOL_NOM: T_PUNT);
+
+{Libera toda la memoria dinamica del arbol}
+PROCEDURE DESTRUIR_ARBOL(VAR RAIZ: T_PUNT);
+
+IMPLEMENTATION
+
+PROCEDURE CREAR_ARBOL(VAR RAIZ: T_PUNT);
+BEGIN
+  RAIZ := NIL;
+END;
+
+FUNCTION ARBOL_VACIO(RAIZ: T_PUNT): BOOLEAN;
+BEGIN
+  ARBOL_VACIO := RAIZ = NIL;
+END;
+
+FUNCTION ARBOL_LLENO(RAIZ: T_PUNT): BOOLEAN;
+BEGIN
+  ARBOL_LLENO := GETHEAPSTATUS.TOTALFREE < SIZEOF(T_NODO);
+END;
+
+PROCEDURE AGREGAR(VAR RAIZ: T_PUNT; X: T_DATO_ARBOL);
+BEGIN
+  IF RAIZ = NIL THEN
+  BEGIN
+    NEW(RAIZ);
+    RAIZ^.INFO := X;
+    RAIZ^.SAI := NIL;
+    RAIZ^.SAD := NIL;
+  END
+  ELSE IF RAIZ^.INFO.CLAVE > X.CLAVE THEN
+    AGREGAR(RAIZ^.SAI, X)
+  ELSE
+    AGREGAR(RAIZ^.SAD, X);
+END;
+
+PROCEDURE INSERTAR_NODO(VAR RAIZ: T_PUNT; CLAVE: STRING; POS_REL: LONGINT);
+VAR
+  DATO: T_DATO_ARBOL;
+BEGIN
+  DATO.CLAVE := CLAVE;
+  DATO.POS_ARCH := POS_REL;
+  AGREGAR(RAIZ, DATO);
+END;
+
+PROCEDURE PREORDEN(RAIZ: T_PUNT; BUSCADO: STRING; VAR ENC: BOOLEAN; VAR X: T_DATO_ARBOL);
+BEGIN
+  IF (RAIZ = NIL) THEN
+    ENC := FALSE
+  ELSE IF (RAIZ^.INFO.CLAVE = BUSCADO) THEN
+  BEGIN
+    ENC := TRUE;
+    X := RAIZ^.INFO;
+  END
+  ELSE IF RAIZ^.INFO.CLAVE > BUSCADO THEN
+    PREORDEN(RAIZ^.SAI, BUSCADO, ENC, X)
+  ELSE
+    PREORDEN(RAIZ^.SAD, BUSCADO, ENC, X);
+END;
+
+PROCEDURE BUSCAR_NODO(RAIZ: T_PUNT; CLAVE_BUSCADA: STRING; VAR POS_REL: LONGINT);
+VAR
+  ENC: BOOLEAN;
+  DATO: T_DATO_ARBOL;
+BEGIN
+  {Para busqueda en ABB se usa el algoritmo Preorden segun convencion de la catedra}
+  PREORDEN(RAIZ, CLAVE_BUSCADA, ENC, DATO);
+  IF ENC THEN
+    POS_REL := DATO.POS_ARCH
+  ELSE
+    POS_REL := -1;
+END;
+
+FUNCTION SUPRIME_MIN(VAR RAIZ: T_PUNT): T_DATO_ARBOL;
+VAR
+  DIR: T_PUNT;
+BEGIN
+  IF RAIZ^.SAI = NIL THEN
+  BEGIN
+    SUPRIME_MIN := RAIZ^.INFO;
+    DIR := RAIZ;
+    RAIZ := RAIZ^.SAD;
+    DISPOSE(DIR);
+  END
+  ELSE
+    SUPRIME_MIN := SUPRIME_MIN(RAIZ^.SAI);
+END;
+
+PROCEDURE SUPRIME(VAR RAIZ: T_PUNT; X: STRING);
+VAR
+  DIR: T_PUNT;
+BEGIN
+  IF RAIZ <> NIL THEN
+  BEGIN
+    IF X < RAIZ^.INFO.CLAVE THEN
+      SUPRIME(RAIZ^.SAI, X)
+    ELSE IF X > RAIZ^.INFO.CLAVE THEN
+      SUPRIME(RAIZ^.SAD, X)
+    ELSE IF (RAIZ^.SAI = NIL) AND (RAIZ^.SAD = NIL) THEN
+    BEGIN
+      DISPOSE(RAIZ);
+      RAIZ := NIL;
+    END
+    ELSE IF (RAIZ^.SAI = NIL) THEN
+    BEGIN
+      DIR := RAIZ;
+      RAIZ := RAIZ^.SAD;
+      DISPOSE(DIR);
+    END
+    ELSE IF (RAIZ^.SAD = NIL) THEN
+    BEGIN
+      DIR := RAIZ;
+      RAIZ := RAIZ^.SAI;
+      DISPOSE(DIR);
+    END
+    ELSE
+      RAIZ^.INFO := SUPRIME_MIN(RAIZ^.SAD);
+  END;
+END;
+
+PROCEDURE INORDEN(RAIZ: T_PUNT; VAR ARCH_CLI: T_ARCHIVO_CLIENTES);
+VAR
+  REG: T_REG_CLIENTES;
+BEGIN
+  IF RAIZ <> NIL THEN
+  BEGIN
+    {1. Recorre subarbol izquierdo}
+    INORDEN(RAIZ^.SAI, ARCH_CLI);
+
+    {2. Accede directamente a la posicion en el archivo maestro y muestra los datos}
+    SEEK(ARCH_CLI, RAIZ^.INFO.POS_ARCH);
+    READ(ARCH_CLI, REG);
+
+    WRITE(REG.DNI:8, ' | ');
+    WRITE(COPY(REG.APEYNOM, 1, 24):24, ' | ');
+    WRITE(REG.CEL:13, ' | ');
+    IF REG.ESTADO THEN
+      WRITE('ACTIVO   ':9, ' | ')
+    ELSE
+      WRITE('INACTIVO ':9, ' | ');
+    WRITELN(COPY(REG.MAIL, 1, 20));
+
+    {3. Recorre subarbol derecho}
+    INORDEN(RAIZ^.SAD, ARCH_CLI);
+  END;
+END;
+
+PROCEDURE GENERAR_ARBOLES(VAR ARCH_CLI: T_ARCHIVO_CLIENTES; VAR ARBOL_DNI, ARBOL_NOM: T_PUNT);
+VAR
+  I: LONGINT;
+  REG: T_REG_CLIENTES;
+  DATO: T_DATO_ARBOL;
+BEGIN
+  {Se inicializan ambos arboles vacios}
+  CREAR_ARBOL(ARBOL_DNI);
+  CREAR_ARBOL(ARBOL_NOM);
+
+  {Si el archivo maestro contiene registros, los lee e indexa en memoria}
+  IF FILESIZE(ARCH_CLI) > 0 THEN
+  BEGIN
+    FOR I := 0 TO FILESIZE(ARCH_CLI) - 1 DO
+    BEGIN
+      SEEK(ARCH_CLI, I);
+      READ(ARCH_CLI, REG);
+
+      {Indexacion en ARBOL_DNI}
+      DATO.CLAVE := REG.DNI;
+      DATO.POS_ARCH := I;
+      AGREGAR(ARBOL_DNI, DATO);
+
+      {Indexacion en ARBOL_NOM}
+      DATO.CLAVE := REG.APEYNOM;
+      DATO.POS_ARCH := I;
+      AGREGAR(ARBOL_NOM, DATO);
+    END;
+  END;
+END;
+
+PROCEDURE DESTRUIR_ARBOL(VAR RAIZ: T_PUNT);
+BEGIN
+  IF RAIZ <> NIL THEN
+  BEGIN
+    DESTRUIR_ARBOL(RAIZ^.SAI);
+    DESTRUIR_ARBOL(RAIZ^.SAD);
+    DISPOSE(RAIZ);
+    RAIZ := NIL;
+  END;
+END;
+
+END.

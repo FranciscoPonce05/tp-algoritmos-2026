@@ -19,7 +19,10 @@ FUNCTION LEERDIRECCION(MENSAJE: STRING): STRING;
 // LEE Y VALIDA UNA FECHA DE NACIMIENTO EN FORMATO AAAAMMDD
 FUNCTION LEERFECHANAC(MENSAJE: STRING): STRING;
 
-// LEE Y VALIDA UN CELULAR / TELEFONO (ENTRE 8 Y 15 CARACTERES)
+// CALCULA LA EDAD EN ANIOS A PARTIR DE UNA FECHA AAAAMMDD
+FUNCTION CALCULAR_EDAD(FNAC: STRING): INTEGER;
+
+// LEE Y VALIDA UN CELULAR / TELEFONO (10 DIGITOS SIN 0 NI 15, ADMITE PREFIJO +549)
 FUNCTION LEERCELULAR(MENSAJE: STRING): STRING;
 
 // FUNCION AUXILIAR: VERIFICO QUE UNA CADENA SOLO TENGA LETRAS Y ESPACIOS
@@ -159,11 +162,41 @@ BEGIN
 END;
 
 
-{Valida una fecha de nacimiento en 8 digitos AAAAMMDD, verificando anio, mes, dias y anios bisiestos}
+{Calcula la edad en anios a partir de una fecha en formato AAAAMMDD}
+FUNCTION CALCULAR_EDAD(FNAC: STRING): INTEGER;
+VAR
+  ANIO_NAC, MES_NAC, DIA_NAC, CODE: INTEGER;
+  ANIO_ACT, MES_ACT, DIA_ACT: WORD;
+  EDAD: INTEGER;
+BEGIN
+  VAL(COPY(FNAC, 1, 4), ANIO_NAC, CODE);
+  IF CODE <> 0 THEN EXIT(0);
+  VAL(COPY(FNAC, 5, 2), MES_NAC, CODE);
+  IF CODE <> 0 THEN EXIT(0);
+  VAL(COPY(FNAC, 7, 2), DIA_NAC, CODE);
+  IF CODE <> 0 THEN EXIT(0);
+
+  DECODEDATE(DATE, ANIO_ACT, MES_ACT, DIA_ACT);
+  {Garantiza que tome como referencia el ciclo lectivo 2026}
+  IF ANIO_ACT < 2026 THEN
+  BEGIN
+    ANIO_ACT := 2026;
+    MES_ACT := 11;
+    DIA_ACT := 24;
+  END;
+  EDAD := ANIO_ACT - ANIO_NAC;
+  IF (MES_ACT < MES_NAC) OR ((MES_ACT = MES_NAC) AND (DIA_ACT < DIA_NAC)) THEN
+    EDAD := EDAD - 1;
+  CALCULAR_EDAD := EDAD;
+END;
+
+
+{Valida una fecha de nacimiento en 8 digitos AAAAMMDD, verificando anio, mes, dias, anios bisiestos y edad minima de 18}
 FUNCTION LEERFECHANAC(MENSAJE: STRING): STRING;
 VAR
   ENTRADA, STRANIO, STRMES, STRDIA: STRING;
   ANIO, MES, DIA, CODE: INTEGER;
+  EDAD: INTEGER;
   VALIDO: BOOLEAN;
 BEGIN
   REPEAT
@@ -204,10 +237,21 @@ BEGIN
           IF DIA > 28 THEN VALIDO := FALSE;
         END;
       END;
+
+      {Control de edad minima para adquirir poliza: al menos 18 anios}
+      IF VALIDO THEN
+      BEGIN
+        EDAD := CALCULAR_EDAD(ENTRADA);
+        IF EDAD < 18 THEN
+        BEGIN
+          WRITELN('ERROR: EL CLIENTE DEBE TENER LA EDAD MINIMA PARA ADQUIRIR UNA POLIZA (AL MENOS 18 ANIOS). TIENE ', EDAD, ' ANIOS.');
+          VALIDO := FALSE;
+        END;
+      END;
     END;
 
     IF NOT VALIDO THEN
-      WRITELN('ERROR: FECHA INVALIDA. INGRESE 8 DIGITOS EN FORMATO AAAAMMDD (EJ: 19950521).');
+      WRITELN('ERROR: FECHA INVALIDA. INGRESE 8 DIGITOS EN FORMATO AAAAMMDD (EJ: 19950521) Y DEBE SER MAYOR DE EDAD.');
 
   UNTIL VALIDO;
 
@@ -215,34 +259,60 @@ BEGIN
 END;
 
 
-{Valida que el celular contenga entre 8 y 15 digitos y solo admita numeros, espacios o el signo +}
+{Funcion auxiliar: quita el prefijo internacional +549 o 549 y el 0 de caracteristica}
+FUNCTION LIMPIAR_CELULAR(ENTRADA: STRING): STRING;
+VAR
+  I: INTEGER;
+  LIMPIO: STRING;
+BEGIN
+  LIMPIO := '';
+  FOR I := 1 TO LENGTH(ENTRADA) DO
+  BEGIN
+    IF ENTRADA[I] IN ['0'..'9', '+'] THEN
+      LIMPIO := LIMPIO + ENTRADA[I];
+  END;
+
+  {Quita el prefijo internacional de Argentina si fue ingresado: +549 o 549}
+  IF (POS('+549', LIMPIO) = 1) THEN
+    DELETE(LIMPIO, 1, 4)
+  ELSE IF (POS('+54', LIMPIO) = 1) THEN
+  BEGIN
+    DELETE(LIMPIO, 1, 3);
+    IF (LENGTH(LIMPIO) > 0) AND (LIMPIO[1] = '9') THEN
+      DELETE(LIMPIO, 1, 1);
+  END
+  ELSE IF (POS('549', LIMPIO) = 1) AND (LENGTH(LIMPIO) = 13) THEN
+    DELETE(LIMPIO, 1, 3);
+
+  {Quita el 0 inicial si fue ingresado con caracteristica (ej: 03442 -> 3442)}
+  IF (LENGTH(LIMPIO) = 11) AND (LIMPIO[1] = '0') THEN
+    DELETE(LIMPIO, 1, 1);
+
+  LIMPIAR_CELULAR := LIMPIO;
+END;
+
+
+{Valida que el celular contenga 10 digitos, sacando el +549 (13 digitos internacional)}
 FUNCTION LEERCELULAR(MENSAJE: STRING): STRING;
 VAR
-  ENTRADA: STRING;
+  ENTRADA, CEL_LIMPIO: STRING;
   VALIDO: BOOLEAN;
-  I: INTEGER;
 BEGIN
   REPEAT
-    WRITE(MENSAJE + ': ');
+    WRITE(MENSAJE + ' (10 digitos sin 0 ni 15, ej: 3442123456 o +5493442123456): ');
     READLN(ENTRADA);
     ENTRADA := TRIM(ENTRADA);
-    VALIDO := (LENGTH(ENTRADA) >= 8) AND (LENGTH(ENTRADA) <= 15);
 
-    I := 1;
-    WHILE (I <= LENGTH(ENTRADA)) AND VALIDO DO
-    BEGIN
-      IF NOT (ENTRADA[I] IN ['0'..'9', '+', '-', ' ']) THEN
-        VALIDO := FALSE
-      ELSE
-        I := I + 1;
-    END;
+    CEL_LIMPIO := LIMPIAR_CELULAR(ENTRADA);
+    {Verifica que el resultado contenga exactamente 10 digitos numericos}
+    VALIDO := (LENGTH(CEL_LIMPIO) = 10) AND ESSOLONUMEROS(CEL_LIMPIO);
 
     IF NOT VALIDO THEN
-      WRITELN('ERROR: CELULAR INVALIDO (ENTRE 8 Y 15 CARACTERES, SOLO NUMEROS, ESPACIOS O +).');
+      WRITELN('ERROR: CELULAR INVALIDO. DEBE TENER 10 DIGITOS (O 13 DIGITOS CON PREFIJO PAIS +549).');
 
   UNTIL VALIDO;
 
-  LEERCELULAR := ENTRADA;
+  LEERCELULAR := CEL_LIMPIO;
 END;
 
 
