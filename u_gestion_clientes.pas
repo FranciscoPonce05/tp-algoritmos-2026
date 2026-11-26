@@ -17,26 +17,6 @@ BEGIN
   READ(ARCH_CLIENTES, REG);
 END;
 
-PROCEDURE BUSCAR(VAR ARCH_CLIENTES: T_ARCHIVO_CLIENTES; BUSCADO: STRING; VAR POS: LONGINT);
-VAR
-  I: LONGINT;
-  REG: T_REG_CLIENTES;
-BEGIN
-  POS := -1;
-  {Se posiciona el puntero al inicio y se recorre secuencialmente sin cerrar el archivo}
-  SEEK(ARCH_CLIENTES, 0);
-  I := 0;
-
-  WHILE (I < FILESIZE(ARCH_CLIENTES)) AND (POS = -1) DO
-  BEGIN
-    LEE_REGISTRO(ARCH_CLIENTES, I, REG);
-    IF REG.DNI = BUSCADO THEN
-      POS := I
-    ELSE
-      I := I + 1;
-  END;
-END;
-
 // ALTA DE NUEVO CLIENTE CON VALIDACIONES Y ACTUALIZACION DE ARBOLES
 PROCEDURE DAR_ALTA(VAR ARCH_CLIENTES: T_ARCHIVO_CLIENTES; DNI_INGRESADO: STRING; VAR ARBOL_DNI, ARBOL_NOM: T_PUNT);
 VAR
@@ -88,11 +68,14 @@ BEGIN
 END;
 
 {Modificacion de los datos del cliente activo excepto su identificador unico (DNI), segun requerimiento A.3}
-PROCEDURE MODIFICAR_DATOS(VAR ARCH_CLIENTES: T_ARCHIVO_CLIENTES; POS: LONGINT; VAR REG: T_REG_CLIENTES);
+PROCEDURE MODIFICAR_DATOS(VAR ARCH_CLIENTES: T_ARCHIVO_CLIENTES; VAR ARBOL_NOM: T_PUNT; POS: LONGINT; VAR REG: T_REG_CLIENTES);
 VAR
   OP: CHAR;
   CONFIRMA: BOOLEAN;
+  NOMBRE_EN_ARBOL: STRING; {Apellido y nombre con el que el cliente figura actualmente en ARBOL_NOM}
 BEGIN
+  NOMBRE_EN_ARBOL := REG.APEYNOM;
+
   REPEAT
     CLRSCR;
     WRITELN('========================================');
@@ -132,6 +115,15 @@ BEGIN
       BEGIN
         SEEK(ARCH_CLIENTES, POS);
         WRITE(ARCH_CLIENTES, REG);
+
+        {Si cambio el APEYNOM, el nodo de ARBOL_NOM se reubica: se elimina la clave vieja y se inserta la nueva con la misma POS}
+        IF REG.APEYNOM <> NOMBRE_EN_ARBOL THEN
+        BEGIN
+          ELIMINAR_NODO(ARBOL_NOM, NOMBRE_EN_ARBOL, POS); {AJUSTAR al nombre real del procedimiento de ARBOL.pas}
+          INSERTAR_NODO(ARBOL_NOM, REG.APEYNOM, POS);
+          NOMBRE_EN_ARBOL := REG.APEYNOM;
+        END;
+
         WRITELN('>> Modificacion guardada con exito. <<');
       END
       ELSE
@@ -148,7 +140,7 @@ BEGIN
 END;
 
 // CONSULTA, BAJA LOGICA O MODIFICACION
-PROCEDURE MODIFICAR_O_BAJA(VAR ARCH_CLIENTES: T_ARCHIVO_CLIENTES; POS: LONGINT);
+PROCEDURE MODIFICAR_O_BAJA(VAR ARCH_CLIENTES: T_ARCHIVO_CLIENTES; VAR ARBOL_NOM: T_PUNT; POS: LONGINT);
 VAR
   REG: T_REG_CLIENTES;
   OP: CHAR;
@@ -184,7 +176,7 @@ BEGIN
       READLN(OP);
 
       CASE OP OF
-        '1': MODIFICAR_DATOS(ARCH_CLIENTES, POS, REG);
+        '1': MODIFICAR_DATOS(ARCH_CLIENTES, ARBOL_NOM, POS, REG);
         '2': BEGIN
                WRITELN;
                {Baja logica: cambia el campo ESTADO a FALSE sin borrar fisicamente el registro}
@@ -272,8 +264,10 @@ BEGIN
   ELSE
   BEGIN
     {Si el cliente existe (POS <> -1), muestra la ficha y ofrece Modificacion o Baja (Requerimiento A.3)}
-    MODIFICAR_O_BAJA(ARCH_CLIENTES, POS);
+    MODIFICAR_O_BAJA(ARCH_CLIENTES, ARBOL_NOM, POS);
   END;
 END;
 
 END.
+
+
