@@ -66,8 +66,30 @@ BEGIN
       1: BEGIN
            CLIENTES(ARCH_CLIENTES, ARBOL_DNI, ARBOL_NOM);
          END;
-      // 2: POLIZAS(ARCH_CLIENTES, ARCH_POLIZAS, ARBOL_DNI);
-      // 3: LISTADOS(ARCH_CLIENTES, ARCH_POLIZAS, ARBOL_NOM);
+       2: BEGIN
+           ARCHIVO_POLIZAS.CREAR_ABRIR(ARCH_POLIZAS);
+           TRY
+             {La base recibida gestiona clientes sin indices. Se arma el ABB
+              con los datos actuales al entrar. En el menu grupal se pasa
+              directamente la raiz mantenida por Gestion de Clientes.}
+             ARBOL_DNI := NIL;
+             TRY
+               SEEK(ARCH_CLIENTES, 0);
+               WHILE NOT EOF(ARCH_CLIENTES) DO
+               BEGIN
+                 POS := FILEPOS(ARCH_CLIENTES);
+                 READ(ARCH_CLIENTES, REG);
+                 ARBOL_INSERTAR(ARBOL_DNI, REG.DNI, POS);
+               END;
+               POLIZAS(ARCH_CLIENTES, ARCH_POLIZAS, ARBOL_DNI);
+             FINALLY
+               LIBERAR(ARBOL_DNI);
+             END;
+           FINALLY
+             ARCHIVO_POLIZAS.CERRAR(ARCH_POLIZAS);
+           END;
+         END;
+       3: MENU_LISTADOS(ARCH_CLIENTES,ARCH_POLIZAS,ARBOL_NOM);
       // 4: ESTADISTICAS(ARCH_CLIENTES, ARCH_POLIZAS);
     END;
   UNTIL OPCION = 0;
