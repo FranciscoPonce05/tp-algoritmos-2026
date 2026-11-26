@@ -5,9 +5,9 @@ UNIT U_GESTION_CLIENTES;
 INTERFACE
 
 USES
-  ARCHIVO_CLIENTES, ARBOLES, CRT, VALIDACION;
+  ARCHIVO_CLIENTES, CRT, VALIDACION, ARBOL;
 
-PROCEDURE CLIENTES(VAR ARCH_CLIENTES: T_ARCHIVO_CLIENTES; VAR ARBOL_DNI, ARBOL_NOM: T_ARBOL);
+PROCEDURE CLIENTES(VAR ARCH_CLIENTES: T_ARCHIVO_CLIENTES; VAR ARBOL_DNI, ARBOL_NOM: T_PUNT);
 
 IMPLEMENTATION
 
@@ -17,12 +17,12 @@ BEGIN
   READ(ARCH_CLIENTES, REG);
 END;
 
-// ALTA DE NUEVO CLIENTE CON VALIDACIONES
-PROCEDURE DAR_ALTA(VAR ARCH_CLIENTES: T_ARCHIVO_CLIENTES; VAR ARBOL_DNI, ARBOL_NOM: T_ARBOL; DNI_INGRESADO: STRING);
+// ALTA DE NUEVO CLIENTE CON VALIDACIONES Y ACTUALIZACION DE ARBOLES
+PROCEDURE DAR_ALTA(VAR ARCH_CLIENTES: T_ARCHIVO_CLIENTES; DNI_INGRESADO: STRING; VAR ARBOL_DNI, ARBOL_NOM: T_PUNT);
 VAR
   REG: T_REG_CLIENTES;
   CONFIRMA: BOOLEAN;
-  POS_RELATIVA: LONGINT;
+  NUEVA_POS: LONGINT;
 BEGIN
   CLRSCR;
   WRITELN('========================================');
@@ -37,22 +37,21 @@ BEGIN
   REG.FNAC    := LEERFECHANAC('Ingrese Fecha de Nacimiento');
   REG.CEL     := LEERCELULAR('Ingrese Celular');
   REG.MAIL    := LEEREMAIL('Ingrese E-mail');
-  REG.ESTADO  := TRUE; {Activo por defecto}
+  REG.ESTADO  := FALSE; {Por defecto el ingreso de un cliente esta INACTIVO}
 
   WRITELN;
+  WRITELN('Estado asignado por defecto: INACTIVO');
   CONFIRMA := LEERCONFIRMACION('¿Desea registrar al cliente?');
   IF CONFIRMA THEN
   BEGIN
     {SEEK a FILESIZE ubica el puntero al final del archivo para anexar el nuevo registro}
-    SEEK(ARCH_CLIENTES, FILESIZE(ARCH_CLIENTES));
+    NUEVA_POS := FILESIZE(ARCH_CLIENTES);
+    SEEK(ARCH_CLIENTES, NUEVA_POS);
     WRITE(ARCH_CLIENTES, REG);
 
-    {Tras el WRITE el archivo crecio en 1, por lo que el nuevo registro quedo en FILESIZE - 1}
-    POS_RELATIVA := FILESIZE(ARCH_CLIENTES) - 1;
-
-    {Se inserta simultaneamente en ambos arboles con la misma posicion relativa}
-    ARBOL_INSERTAR(ARBOL_DNI, REG.DNI, POS_RELATIVA);
-    ARBOL_INSERTAR(ARBOL_NOM, REG.APEYNOM, POS_RELATIVA);
+    {Actualiza los arboles binarios en memoria con el nuevo registro}
+    INSERTAR_NODO(ARBOL_DNI, REG.DNI, NUEVA_POS);
+    INSERTAR_NODO(ARBOL_NOM, REG.APEYNOM, NUEVA_POS);
 
     WRITELN;
     WRITELN('>> ¡Cliente registrado con exito! <<');
@@ -69,7 +68,7 @@ BEGIN
 END;
 
 {Modificacion de los datos del cliente activo excepto su identificador unico (DNI), segun requerimiento A.3}
-PROCEDURE MODIFICAR_DATOS(VAR ARCH_CLIENTES: T_ARCHIVO_CLIENTES; VAR ARBOL_NOM: T_ARBOL; POS: LONGINT; VAR REG: T_REG_CLIENTES);
+PROCEDURE MODIFICAR_DATOS(VAR ARCH_CLIENTES: T_ARCHIVO_CLIENTES; VAR ARBOL_NOM: T_PUNT; POS: LONGINT; VAR REG: T_REG_CLIENTES);
 VAR
   OP: CHAR;
   CONFIRMA: BOOLEAN;
@@ -120,8 +119,8 @@ BEGIN
         {Si cambio el APEYNOM, el nodo de ARBOL_NOM se reubica: se elimina la clave vieja y se inserta la nueva con la misma POS}
         IF REG.APEYNOM <> NOMBRE_EN_ARBOL THEN
         BEGIN
-          ARBOL_ELIMINAR(ARBOL_NOM, NOMBRE_EN_ARBOL, POS);
-          ARBOL_INSERTAR(ARBOL_NOM, REG.APEYNOM, POS);
+          ELIMINAR_NODO(ARBOL_NOM, NOMBRE_EN_ARBOL, POS); {AJUSTAR al nombre real del procedimiento de ARBOL.pas}
+          INSERTAR_NODO(ARBOL_NOM, REG.APEYNOM, POS);
           NOMBRE_EN_ARBOL := REG.APEYNOM;
         END;
 
@@ -141,7 +140,7 @@ BEGIN
 END;
 
 // CONSULTA, BAJA LOGICA O MODIFICACION
-PROCEDURE MODIFICAR_O_BAJA(VAR ARCH_CLIENTES: T_ARCHIVO_CLIENTES; VAR ARBOL_NOM: T_ARBOL; POS: LONGINT);
+PROCEDURE MODIFICAR_O_BAJA(VAR ARCH_CLIENTES: T_ARCHIVO_CLIENTES; VAR ARBOL_NOM: T_PUNT; POS: LONGINT);
 VAR
   REG: T_REG_CLIENTES;
   OP: CHAR;
@@ -222,8 +221,8 @@ BEGIN
   UNTIL OP = '0';
 END;
 
-// PROCEDIMIENTO PRINCIPAL DE GESTION DE CLIENTES
-PROCEDURE CLIENTES(VAR ARCH_CLIENTES: T_ARCHIVO_CLIENTES; VAR ARBOL_DNI, ARBOL_NOM: T_ARBOL);
+// PROCEDIMIENTO PRINCIPAL DE GESTION DE CLIENTES CON ABB
+PROCEDURE CLIENTES(VAR ARCH_CLIENTES: T_ARCHIVO_CLIENTES; VAR ARBOL_DNI, ARBOL_NOM: T_PUNT);
 VAR
   DNI: STRING;
   POS: LONGINT;
@@ -235,10 +234,10 @@ BEGIN
   WRITELN('========================================');
   DNI := LEERDNI('Ingrese DNI del cliente');
 
-  {Busqueda en ARBOL_DNI en lugar del recorrido secuencial. Devuelve -1 si el DNI no existe}
-  ARBOL_BUSCAR(ARBOL_DNI, DNI, POS);
+  {Busqueda eficiente en memoria utilizando el arbol binario por DNI}
+  BUSCAR_NODO(ARBOL_DNI, DNI, POS);
 
-  {Si el DNI no existe (POS = -1), deriva al submenú para dar de Alta o Volver (Requerimiento A.2)}
+  {Si el DNI no existe en el arbol (POS = -1), deriva al submenú para dar de Alta o Volver (Requerimiento A.2)}
   IF POS = -1 THEN
   BEGIN
     REPEAT
@@ -256,7 +255,7 @@ BEGIN
 
       CASE OPC OF
         '1': BEGIN
-               DAR_ALTA(ARCH_CLIENTES, ARBOL_DNI, ARBOL_NOM, DNI);
+               DAR_ALTA(ARCH_CLIENTES, DNI, ARBOL_DNI, ARBOL_NOM);
                OPC := '0'; {Luego del alta regresa al menu anterior}
              END;
       END;
@@ -270,4 +269,5 @@ BEGIN
 END;
 
 END.
+
 
